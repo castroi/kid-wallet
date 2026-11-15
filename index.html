@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>הקופה שלי</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="הקופה שלי">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FFF7E8">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #FFF7E8;
+    --ink: #22313A;
+    --muted: #6B7A82;
+    --card: #FFFFFF;
+    --line: #EADFCB;
+    --bank: #14564F;
+    --in: #1E9E6A;
+    --in-dark: #157A51;
+    --out: #E4572E;
+    --out-dark: #BC4321;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, system-ui, "Arial Hebrew", "Heebo", Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.4;
+    touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+  }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+  [hidden] { display: none !important; }
+  main {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 24px);
+  }
+  h1 { font-size: 26px; margin: 0 0 12px; font-weight: 800; text-align: center; overflow-wrap: anywhere; }
+
+  .balance {
+    background: var(--bank);
+    color: #fff;
+    border-radius: 28px;
+    padding: 22px 16px 26px;
+    text-align: center;
+  }
+  .balance .label { font-size: 20px; opacity: .85; }
+  .balance .sum {
+    font-size: 68px; font-weight: 800; line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .balance.neg .sum { color: #FFC2B0; }
+  .balance .hint { font-size: 16px; opacity: .85; }
+  .balance .hint:empty { display: none; }
+
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 24px; }
+  .act {
+    border-radius: 22px; padding: 18px 8px; color: #fff;
+    font-size: 22px; font-weight: 700;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .act .sign { font-size: 40px; line-height: 1; font-weight: 800; }
+  .act.in { background: var(--in); box-shadow: 0 5px 0 var(--in-dark); }
+  .act.out { background: var(--out); box-shadow: 0 5px 0 var(--out-dark); }
+  .act:active { transform: translateY(4px); box-shadow: none; }
+
+  h2 { font-size: 18px; margin: 0 0 8px; color: var(--muted); font-weight: 600; }
+  .list { list-style: none; margin: 0; padding: 0; background: var(--card); border-radius: 20px; border: 1px solid var(--line); overflow: hidden; }
+  .list li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--line); }
+  .list li:first-child { border-top: 0; }
+  .dot { flex: none; width: 34px; height: 34px; border-radius: 50%; color: #fff; font-weight: 800; font-size: 22px; display: grid; place-items: center; line-height: 1; }
+  .dot.in { background: var(--in); }
+  .dot.out { background: var(--out); }
+  .what { flex: 1; min-width: 0; }
+  .what .note { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .what .date { font-size: 14px; color: var(--muted); }
+  .amt { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .amt.in { color: var(--in-dark); }
+  .amt.out { color: var(--out-dark); }
+  .rowtools { flex-basis: 100%; display: flex; gap: 8px; justify-content: flex-end; }
+  .rowtools button { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 6px 14px; font-size: 16px; }
+  .rowtools .sure { background: var(--out); border-color: var(--out); color: #fff; font-weight: 700; }
+  .empty { background: var(--card); border: 1px dashed var(--line); border-radius: 20px; padding: 22px 16px; text-align: center; color: var(--muted); }
+
+  .more { display: block; width: 100%; margin-top: 10px; padding: 12px; background: transparent; color: var(--bank); font-weight: 700; border-radius: 14px; }
+  .more.less { margin-top: 0; color: var(--muted); font-weight: 600; }
+  .top { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+  .top h1 { flex: 1; min-width: 0; margin: 0; }
+  .top-side, .parents-link { flex: none; width: 54px; }
+  .parents-link { padding: 10px 0; background: transparent; color: var(--muted); font-size: 15px; text-decoration: underline; }
+
+  /* Parents screen */
+  .phead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .phead h1 { margin: 0; font-size: 22px; }
+  .back { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 8px 16px; font-weight: 700; }
+  .field { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 14px; margin-bottom: 20px; }
+  .field label { display: block; font-size: 16px; color: var(--muted); margin-bottom: 6px; }
+  input[type=text] {
+    width: 100%; font: inherit; font-size: 18px; padding: 12px 14px;
+    border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink);
+    -webkit-user-select: text; user-select: text;
+  }
+  .field .check { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; font-size: 18px; color: var(--ink); }
+  .check input { width: 24px; height: 24px; accent-color: var(--bank); }
+  .check select { margin-inline-start: auto; font: inherit; font-size: 18px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+  .tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 0 0 22px; }
+  .tools button, .tools label { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 16px; font-size: 16px; color: var(--ink); }
+  .tools input { display: none; }
+
+  /* Sheets */
+  .overlay { position: fixed; inset: 0; z-index: 3; background: rgba(20, 30, 35, .45); display: none; align-items: flex-end; justify-content: center; }
+  .overlay.open { display: flex; }
+  .sheet {
+    width: 100%; max-width: 480px; background: var(--bg);
+    border-radius: 26px 26px 0 0;
+    padding: 18px 16px calc(env(safe-area-inset-bottom) + 16px);
+  }
+  .sheet h3 { margin: 0; text-align: center; font-size: 22px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .seg button { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px; font-weight: 700; }
+  .sheet.in .seg [data-m=in] { background: var(--in); border-color: var(--in); color: #fff; }
+  .sheet.out .seg [data-m=out] { background: var(--out); border-color: var(--out); color: #fff; }
+  .entry { text-align: center; font-size: 56px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 6px 0 10px; min-height: 68px; }
+  .sheet.in .entry { color: var(--in-dark); }
+  .sheet.out .entry { color: var(--out-dark); }
+  .pad { direction: ltr; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+  .pad button { background: #fff; border: 1px solid var(--line); border-radius: 16px; font-size: 28px; font-weight: 700; padding: 12px 0; }
+  .pad button:active { background: var(--line); }
+  .pad .blank { visibility: hidden; }
+  .sheet-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+  .sheet-actions button { border-radius: 16px; padding: 16px; font-size: 20px; font-weight: 700; }
+  .cancel { background: #fff; border: 1px solid var(--line) !important; }
+  .save { color: #fff; }
+  .sheet.in .save { background: var(--in); }
+  .sheet.out .save { background: var(--out); }
+  .save:disabled { opacity: .35; }
+  .pin-dots { direction: ltr; display: flex; justify-content: center; gap: 14px; margin: 16px 0 6px; }
+  .pin-dots span { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--bank); }
+  .pin-dots span.on { background: var(--bank); }
+  .pin-msg { text-align: center; min-height: 24px; font-size: 16px; color: var(--out-dark); }
+  .pin-cancel { display: block; width: 100%; border-radius: 16px; padding: 14px; font-size: 20px; font-weight: 700; }
+
+  .toast {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 12px); z-index: 5; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 16px;
+    display: flex; align-items: center; gap: 12px; white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 92%;
+  }
+  .toast.show { opacity: 1; pointer-events: auto; }
+  .toast button { background: #fff; color: var(--ink); border-radius: 999px; padding: 4px 14px; font-weight: 700; font-size: 16px; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } .act:active { transform: none; } }
+</style>
+</head>
+<body>
+
+<main id="home">
+  <header class="top">
+    <span class="top-side"></span>
+    <h1 id="greeting"></h1>
+    <button class="parents-link" id="btnParents">הורים</button>
+  </header>
+
+  <section class="balance" id="balance" aria-live="polite">
+    <div class="label">יש לך</div>
+    <div class="sum"><bdi dir="ltr" id="sum">₪0</bdi></div>
+    <div class="hint" id="hint"></div>
+  </section>
+
+  <div class="actions">
+    <button class="act in" id="btnIn"><span class="sign">+</span>הפקדתי</button>
+    <button class="act out" id="btnOut"><span class="sign">−</span>קניתי</button>
+  </div>
+
+  <h2 id="listTitle">פעולות אחרונות</h2>
+  <div id="listWrap"></div>
+  <button class="more" id="btnMore" hidden></button>
+  <button class="more less" id="btnLess" hidden>הצג פחות</button>
+</main>
+
+<main id="parent" hidden>
+  <div class="phead">
+    <h1>מסך הורים</h1>
+    <button class="back" id="btnBack">חזרה</button>
+  </div>
+
+  <div class="field">
+    <label for="kidName">שם הילד/ה (מופיע בברכה)</label>
+    <input type="text" id="kidName" maxlength="20" autocomplete="off" enterkeyhint="done">
+    <label class="check"><input type="checkbox" id="soundOn"> צליל מטבעות בהפקדה</label>
+    <label class="check" for="pageSize">פעולות בכל עמוד
+      <select id="pageSize"><option>10</option><option>20</option><option>50</option></select>
+    </label>
+  </div>
+
+  <div class="tools">
+    <button id="btnExport">שמור גיבוי</button>
+    <label>שחזר מגיבוי<input type="file" id="fileImport" accept=".csv,text/csv,text/comma-separated-values"></label>
+    <button id="btnPin">החלף קוד</button>
+  </div>
+
+  <h2 id="parentTitle">כל הפעולות</h2>
+  <div id="parentList"></div>
+  <button class="more" id="parentMore" hidden></button>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h3 id="sheetTitle"></h3>
+    <div class="seg" id="seg" hidden>
+      <button data-m="in">הפקדה</button>
+      <button data-m="out">קנייה</button>
+    </div>
+    <div class="entry"><bdi dir="ltr" id="entry">₪0</bdi></div>
+    <input type="text" id="note" maxlength="40" autocomplete="off" enterkeyhint="done">
+    <div class="pad" id="pad">
+      <button>1</button><button>2</button><button>3</button>
+      <button>4</button><button>5</button><button>6</button>
+      <button>7</button><button>8</button><button>9</button>
+      <button>.</button><button>0</button><button data-k="back" aria-label="מחק ספרה">⌫</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="cancel" id="btnCancel">ביטול</button>
+      <button class="save" id="btnSave" disabled>שמור</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pinOverlay">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
+    <h3 id="pinTitle"></h3>
+    <div class="pin-dots" id="pinDots"><span></span><span></span><span></span><span></span></div>
+    <div class="pin-msg" id="pinMsg"></div>
+    <div class="pad" id="pinPad">
+      <button>1</button><button>2</button><button>3</button>
+      <button>4</button><button>5</button><button>6</button>
+      <button>7</button><button>8</button><button>9</button>
+      <button class="blank" disabled></button><button>0</button><button data-k="back" aria-label="מחק ספרה">⌫</button>
+    </div>
+    <button class="pin-cancel cancel" id="pinCancel">ביטול</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="toastAct" hidden></button></div>
+
+<script>
+(function () {
+  var KEY = 'kupa.v1';
+  var SETTINGS_KEY = 'kupa.settings.v1';
+  var RECENT = 5;
+  var $ = function (id) { return document.getElementById(id); };
+
+  // Each item: { id, t: ISO date, type: 'in' | 'out', a: amount in agorot, note }
+  var items = loadJson(KEY, []);
+  if (!Array.isArray(items)) items = [];
+  // settings: { name, pin }
+  var settings = loadJson(SETTINGS_KEY, {});
+  if (!settings || typeof settings !== 'object') settings = {};
+
+  var showAll = false;
+  var homeCount = 0, parentCount = 0; // how many rows are shown once a list is paged
+  function pageSize() { return [10, 20, 50].indexOf(settings.page) >= 0 ? settings.page : 20; }
+  var mode = 'in';
+  var typed = '';
+  var editing = null;
+  var toastTimer, toastFn;
+
+  function loadJson(key, fallback) {
+    try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; }
+    catch (e) { return fallback; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(items)); }
+    catch (e) { toast('לא הצלחתי לשמור. ספר להורה.'); }
+  }
+  function saveSettings() {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+  }
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function fmt(agorot) {
+    var neg = agorot < 0, n = Math.abs(agorot);
+    var shekels = Math.floor(n / 100).toLocaleString('en-US');
+    var ag = n % 100;
+    return (neg ? '-' : '') + '₪' + shekels + (ag ? '.' + (ag < 10 ? '0' : '') + ag : '');
+  }
+  function dayLabel(iso) {
+    var d = new Date(iso), now = new Date();
+    var a = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    var b = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var diff = Math.round((b - a) / 86400000);
+    if (diff === 0) return 'היום';
+    if (diff === 1) return 'אתמול';
+    return d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
+  }
+  function greeting() {
+    var h = new Date().getHours();
+    var g = h >= 5 && h < 12 ? 'בוקר טוב' : h >= 12 && h < 17 ? 'צהריים טובים' : h >= 17 && h < 21 ? 'ערב טוב' : 'לילה טוב';
+    var name = (settings.name || '').trim();
+    return g + (name ? ', ' + name : '') + '!';
+  }
+  function toast(msg, actLabel, actFn) {
+    var el = $('toast'), btn = $('toastAct');
+    $('toastMsg').textContent = msg;
+    toastFn = actFn || null;
+    btn.hidden = !actFn;
+    btn.textContent = actLabel || '';
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, actFn ? 6000 : 2600);
+  }
+  function hideToast() { $('toast').classList.remove('show'); toastFn = null; }
+  $('toastAct').addEventListener('click', function () { var fn = toastFn; hideToast(); if (fn) fn(); });
+
+  function sortedItems() { return items.slice().sort(function (x, y) { return x.t < y.t ? 1 : -1; }); }
+
+  function fillList(wrap, list, parentMode) {
+    wrap.textContent = '';
+    if (!list.length) {
+      var e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = parentMode ? 'עוד אין פעולות.' : 'עוד אין פעולות. לחץ על "הפקדתי" כדי להתחיל.';
+      wrap.appendChild(e);
+      return;
+    }
+    var ul = document.createElement('ul');
+    ul.className = 'list';
+    list.forEach(function (it) { ul.appendChild(row(it, parentMode)); });
+    wrap.appendChild(ul);
+  }
+
+  function render() {
+    $('greeting').textContent = greeting();
+    var total = items.reduce(function (s, it) { return s + (it.type === 'in' ? it.a : -it.a); }, 0);
+    var sumText = fmt(total);
+    $('sum').textContent = sumText;
+    // Long sums (negative, agorot, thousands) shrink so they stay on one line.
+    $('sum').parentNode.style.fontSize = (sumText.length <= 6 ? 68 : sumText.length <= 7 ? 60 : sumText.length <= 8 ? 52 : sumText.length <= 10 ? 42 : 34) + 'px';
+    $('balance').classList.toggle('neg', total < 0);
+    $('hint').textContent = total < 0 ? 'הוצאת יותר ממה שהפקדת' : '';
+
+    var sorted = sortedItems();
+    var n = showAll ? Math.max(homeCount, pageSize()) : RECENT;
+    var left = sorted.length - n;
+    $('listTitle').textContent = showAll ? 'כל הפעולות' : 'פעולות אחרונות';
+    fillList($('listWrap'), sorted.slice(0, n), false);
+    var more = $('btnMore');
+    more.hidden = left <= 0;
+    more.textContent = showAll ? 'הצג עוד (נשארו ' + left + ')' : 'כל הפעולות (' + sorted.length + ')';
+    $('btnLess').hidden = !showAll;
+
+    if (!$('parent').hidden) {
+      var pn = Math.max(parentCount, pageSize());
+      var pleft = sorted.length - pn;
+      $('parentTitle').textContent = 'כל הפעולות (' + sorted.length + ')';
+      fillList($('parentList'), sorted.slice(0, pn), true);
+      $('parentMore').hidden = pleft <= 0;
+      $('parentMore').textContent = 'הצג עוד (נשארו ' + pleft + ')';
+    }
+  }
+
+  function row(it, parentMode) {
+    var li = document.createElement('li');
+    var dot = document.createElement('span');
+    dot.className = 'dot ' + it.type;
+    dot.textContent = it.type === 'in' ? '+' : '−';
+    var what = document.createElement('div');
+    what.className = 'what';
+    var note = document.createElement('div');
+    note.className = 'note';
+    note.textContent = it.note || (it.type === 'in' ? 'הפקדה' : 'קנייה');
+    var date = document.createElement('div');
+    date.className = 'date';
+    date.textContent = dayLabel(it.t);
+    what.appendChild(note); what.appendChild(date);
+    var amt = document.createElement('bdi');
+    amt.dir = 'ltr';
+    amt.className = 'amt ' + it.type;
+    amt.textContent = (it.type === 'in' ? '+' : '-') + fmt(it.a);
+    li.appendChild(dot); li.appendChild(what); li.appendChild(amt);
+
+    if (parentMode) {
+      var tools = document.createElement('div');
+      tools.className = 'rowtools';
+      var edit = document.createElement('button');
+      edit.textContent = 'שנה';
+      edit.addEventListener('click', function () { openSheet(it.type, it); });
+      var del = document.createElement('button');
+      del.textContent = 'מחק';
+      del.addEventListener('click', function () {
+        if (del.classList.contains('sure')) {
+          items = items.filter(function (x) { return x.id !== it.id; });
+          save(); render(); toast('הפעולה נמחקה');
+        } else {
+          del.classList.add('sure');
+          del.textContent = 'בטוח?';
+          setTimeout(function () { del.classList.remove('sure'); del.textContent = 'מחק'; }, 3000);
+        }
+      });
+      tools.appendChild(edit); tools.appendChild(del);
+      li.appendChild(tools);
+    }
+    return li;
+  }
+
+  // ----- Coin sound on deposit: synthesized, no audio files. Bigger deposit = more coins. -----
+  var actx;
+  function clink(t, freq, dur) {
+    [[freq, 'triangle', 0.22], [freq * 2.4, 'sine', 0.07]].forEach(function (p) {
+      var osc = actx.createOscillator(), g = actx.createGain();
+      osc.type = p[1];
+      osc.frequency.value = p[0];
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(p[2], t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(g); g.connect(actx.destination);
+      osc.start(t); osc.stop(t + dur + 0.05);
+    });
+  }
+  function coinSound(agorot) {
+    if (settings.mute) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      actx = actx || new AC();
+      if (actx.state === 'suspended') actx.resume();
+      var notes = [1047, 1319, 1568, 2093]; // C6 E6 G6 C7, a rising major chord
+      var n = agorot >= 10000 ? 4 : agorot >= 5000 ? 3 : agorot >= 1000 ? 2 : 1;
+      var t0 = actx.currentTime + 0.03;
+      for (var i = 0; i < n; i++) clink(t0 + i * 0.09, notes[i], i === n - 1 ? 0.7 : 0.25);
+    } catch (e) {}
+  }
+
+  // ----- Entry sheet (new entry, or edit from the parents screen) -----
+  function typedAgorot() { return typed ? Math.round(parseFloat(typed) * 100) || 0 : 0; }
+  function renderEntry() {
+    $('entry').textContent = '₪' + (typed || '0');
+    $('btnSave').disabled = typedAgorot() <= 0;
+  }
+  function setMode(m) {
+    mode = m;
+    $('sheet').className = 'sheet ' + m;
+    $('sheetTitle').textContent = editing ? 'שינוי פעולה' : m === 'in' ? 'כמה הפקדת?' : 'כמה זה עלה?';
+    $('note').placeholder = m === 'in' ? 'מאיפה הכסף? (לא חובה)' : 'מה קנית? (לא חובה)';
+  }
+  function openSheet(m, item) {
+    editing = item || null;
+    typed = editing ? (editing.a % 100 ? (editing.a / 100).toFixed(2) : String(editing.a / 100)) : '';
+    $('note').value = editing ? editing.note || '' : '';
+    $('seg').hidden = !editing;
+    setMode(m);
+    renderEntry();
+    $('overlay').classList.add('open');
+  }
+  function closeSheet() { $('note').blur(); $('overlay').classList.remove('open'); editing = null; }
+
+  $('seg').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (b) setMode(b.dataset.m);
+  });
+  $('pad').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b) return;
+    var k = b.dataset.k || b.textContent;
+    if (k === 'back') typed = typed.slice(0, -1);
+    else if (k === '.') { if (typed.indexOf('.') < 0) typed = (typed || '0') + '.'; }
+    else {
+      var parts = typed.split('.');
+      if (parts.length === 2) { if (parts[1].length < 2) typed += k; }
+      else if (typed === '0') typed = k;
+      else if (typed.length < 5) typed += k;
+    }
+    renderEntry();
+  });
+  $('btnSave').addEventListener('click', function () {
+    var a = typedAgorot();
+    if (a <= 0) return;
+    var note = $('note').value.trim();
+    if (editing) {
+      editing.a = a; editing.note = note; editing.type = mode;
+      save(); closeSheet(); render();
+      toast('הפעולה עודכנה');
+      return;
+    }
+    var it = { id: newId(), t: new Date().toISOString(), type: mode, a: a, note: note };
+    items.push(it);
+    if (mode === 'in') coinSound(a);
+    save(); closeSheet(); render();
+    toast(mode === 'in' ? 'נוסף לקופה' : 'נרשם', 'בטל', function () {
+      items = items.filter(function (x) { return x.id !== it.id; });
+      save(); render();
+    });
+  });
+  $('btnCancel').addEventListener('click', closeSheet);
+  $('overlay').addEventListener('click', function (ev) { if (ev.target === $('overlay')) closeSheet(); });
+  $('btnIn').addEventListener('click', function () { openSheet('in'); });
+  $('btnOut').addEventListener('click', function () { openSheet('out'); });
+  $('btnMore').addEventListener('click', function () {
+    if (showAll) homeCount = Math.max(homeCount, pageSize()) + pageSize();
+    else { showAll = true; homeCount = pageSize(); }
+    render();
+  });
+  $('btnLess').addEventListener('click', function () { showAll = false; render(); window.scrollTo(0, 0); });
+  $('parentMore').addEventListener('click', function () { parentCount = Math.max(parentCount, pageSize()) + pageSize(); render(); });
+
+  // ----- Parents screen, behind a 4-digit code -----
+  var pinTyped = '', pinFirst = '', pinStep = 'check'; // 'check' | 'new' | 'confirm'
+
+  function pinRender(msg) {
+    $('pinTitle').textContent = pinStep === 'check' ? 'קוד הורים' : pinStep === 'new' ? 'בחרו קוד הורים (4 ספרות)' : 'הקלידו את הקוד שוב';
+    $('pinMsg').textContent = msg || '';
+    var dots = $('pinDots').children;
+    for (var i = 0; i < dots.length; i++) dots[i].classList.toggle('on', i < pinTyped.length);
+  }
+  function openPin(step) {
+    pinStep = step; pinTyped = ''; pinFirst = '';
+    pinRender();
+    $('pinOverlay').classList.add('open');
+  }
+  function closePin() { $('pinOverlay').classList.remove('open'); }
+  function pinDone() {
+    if (pinStep === 'check') {
+      if (pinTyped === settings.pin) { closePin(); showParent(); }
+      else { pinTyped = ''; pinRender('קוד שגוי'); }
+    } else if (pinStep === 'new') {
+      pinFirst = pinTyped; pinTyped = ''; pinStep = 'confirm'; pinRender();
+    } else if (pinTyped === pinFirst) {
+      settings.pin = pinTyped; saveSettings(); closePin(); showParent();
+      toast('הקוד נשמר');
+    } else {
+      pinTyped = ''; pinFirst = ''; pinStep = 'new'; pinRender('הקודים לא זהים, נסו שוב');
+    }
+  }
+  $('pinPad').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b || b.disabled) return;
+    if (b.dataset.k === 'back') pinTyped = pinTyped.slice(0, -1);
+    else if (pinTyped.length < 4) pinTyped += b.textContent;
+    pinRender();
+    if (pinTyped.length === 4) setTimeout(pinDone, 120);
+  });
+  $('pinCancel').addEventListener('click', closePin);
+  $('pinOverlay').addEventListener('click', function (ev) { if (ev.target === $('pinOverlay')) closePin(); });
+
+  function showParent() {
+    $('home').hidden = true;
+    $('parent').hidden = false;
+    $('kidName').value = settings.name || '';
+    $('soundOn').checked = !settings.mute;
+    $('pageSize').value = String(pageSize());
+    parentCount = 0;
+    render();
+    window.scrollTo(0, 0);
+  }
+  function showHome() {
+    $('kidName').blur();
+    $('parent').hidden = true;
+    $('home').hidden = false;
+    render();
+    window.scrollTo(0, 0);
+  }
+  $('btnParents').addEventListener('click', function () { openPin(settings.pin ? 'check' : 'new'); });
+  $('btnBack').addEventListener('click', showHome);
+  $('btnPin').addEventListener('click', function () { openPin('new'); });
+  $('kidName').addEventListener('input', function () { settings.name = $('kidName').value.trim(); saveSettings(); });
+
+  $('pageSize').addEventListener('change', function () {
+    settings.page = parseInt($('pageSize').value, 10); saveSettings();
+    parentCount = 0; homeCount = 0; render();
+  });
+  $('soundOn').addEventListener('change', function () {
+    settings.mute = !$('soundOn').checked; saveSettings();
+    if (!settings.mute) coinSound(10000);
+  });
+
+  // ----- Backup: CSV export / import -----
+  function csvCell(s) { s = String(s); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function toCsv() {
+    var rows = [['תאריך', 'סוג', 'סכום', 'הערה', 'מזהה']];
+    sortedItems().reverse().forEach(function (it) {
+      rows.push([it.t, it.type === 'in' ? 'הפקדה' : 'קנייה', (it.a / 100).toFixed(2), it.note || '', it.id]);
+    });
+    return '﻿' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n');
+  }
+  function parseCsv(text) {
+    var rows = [], row = [], cell = '', q = false;
+    text = text.replace(/^﻿/, '');
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+        else cell += c;
+      } else if (c === '"') q = true;
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); rows.push(row); row = []; cell = '';
+      } else cell += c;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  $('btnExport').addEventListener('click', function () {
+    if (!items.length) { toast('אין עדיין מה לגבות'); return; }
+    var name = 'kupa-' + new Date().toISOString().slice(0, 10) + '.csv';
+    var file = new File([toCsv()], name, { type: 'text/csv' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'גיבוי הקופה שלי' }).catch(function () {});
+    } else {
+      var url = URL.createObjectURL(file);
+      var a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+  });
+
+  $('fileImport').addEventListener('change', function (ev) {
+    var f = ev.target.files[0];
+    ev.target.value = '';
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var known = {}, added = 0;
+      items.forEach(function (it) { known[it.id] = true; });
+      parseCsv(String(reader.result)).slice(1).forEach(function (r) {
+        if (r.length < 3) return;
+        var t = new Date(r[0]);
+        var type = r[1] === 'הפקדה' ? 'in' : r[1] === 'קנייה' ? 'out' : null;
+        var a = Math.round(parseFloat(r[2]) * 100);
+        if (isNaN(t.getTime()) || !type || !(a > 0)) return;
+        var id = r[4] || newId();
+        if (known[id]) return;
+        known[id] = true;
+        items.push({ id: id, t: t.toISOString(), type: type, a: a, note: (r[3] || '').slice(0, 40) });
+        added++;
+      });
+      if (added) { save(); render(); }
+      toast(added ? 'שוחזרו ' + added + ' פעולות' : 'לא נמצאו פעולות חדשות בקובץ');
+    };
+    reader.onerror = function () { toast('לא הצלחתי לקרוא את הקובץ'); };
+    reader.readAsText(f);
+  });
+
+  // Keep the greeting right when the app is reopened later in the day.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) $('greeting').textContent = greeting();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
